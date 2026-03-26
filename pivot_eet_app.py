@@ -6,22 +6,25 @@ from pathlib import Path
 st.title("WeeFin")
 st.subheader("Outil de transformation des templates de collecte EET")
 
-uploaded_file = st.file_uploader("Uploadez votre template de collecte EET WeeFin", type="xlsx")
+uploaded_files = st.file_uploader("Uploadez vos templates de collecte EET WeeFin", type="xlsx", accept_multiple_files=True)
 
-if uploaded_file:
-    df = pd.read_excel(uploaded_file)
-    result = pd.concat([df[["Datapoint Name"]], df.iloc[:, 10:]], axis=1).set_index("Datapoint Name").T
-    output_name = Path(uploaded_file.name).stem + "_pivoted.xlsx"
+if uploaded_files:
+    dfs = []
+    for file in uploaded_files:
+        df = pd.read_excel(file)
+        result = pd.concat([df[["Datapoint Name"]], df.iloc[:, 10:]], axis=1).set_index("Datapoint Name").T
+        dfs.append(result)
     
-    # Convert to Excel in memory
+    combined = pd.concat(dfs, ignore_index=True)
+    
     output = BytesIO()
-    result.to_excel(output, index=False)
+    combined.to_excel(output, index=False)
     output.seek(0)
     
-    st.success("Le fichier a été traité avec succès")
+    st.success(f"{len(uploaded_files)} fichier(s) traité(s) avec succès")
     st.download_button(
         label="Télécharger le fichier au format EET",
         data=output,
-        file_name=output_name,
+        file_name="output_pivoted.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
